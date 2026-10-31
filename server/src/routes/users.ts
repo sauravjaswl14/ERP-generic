@@ -36,7 +36,7 @@ usersRouter.get(
     const where = q
       ? { OR: [{ name: { contains: q, mode: 'insensitive' as const } }, { email: { contains: q, mode: 'insensitive' as const } }] }
       : {};
-    const [data, total] = await prisma.$transaction([
+    const [data, total] = await Promise.all([
       prisma.user.findMany({ where, select: publicSelect, orderBy: { createdAt: 'desc' }, skip: (page - 1) * pageSize, take: pageSize }),
       prisma.user.count({ where }),
     ]);

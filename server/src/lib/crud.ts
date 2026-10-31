@@ -51,7 +51,7 @@ export function crud(o: CrudOptions): Router {
           const v = req.query[f];
           if (typeof v === 'string' && v) where[f] = v;
         }
-        const [data, total] = await prisma.$transaction([
+        const [data, total] = await Promise.all([
           delegate().findMany({
             where,
             include: o.include,

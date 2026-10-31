@@ -14,7 +14,7 @@ auditRouter.get(
     const pageSize = Math.min(200, Math.max(1, Number(req.query.pageSize) || 25));
     const where: Record<string, unknown> = {};
     if (typeof req.query.entity === 'string' && req.query.entity) where.entity = req.query.entity;
-    const [data, total] = await prisma.$transaction([
+    const [data, total] = await Promise.all([
       prisma.auditLog.findMany({
         where,
         include: { user: { select: { id: true, name: true, email: true } } },
