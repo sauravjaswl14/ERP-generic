@@ -127,7 +127,9 @@ export default function Layout() {
         <div className="flex items-center gap-4">
           <div className="text-right leading-tight">
             <div className="text-sm font-medium text-slate-900">{user.name}</div>
-            <div className="text-xs text-slate-500">{titleCase(user.role)}</div>
+            <div className="text-xs text-slate-500">
+              {titleCase(user.role)} · {user.tenant.name}
+            </div>
           </div>
           <button onClick={logout} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
             Sign out

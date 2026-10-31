@@ -8,12 +8,25 @@ export interface User {
   email: string;
   name: string;
   role: Role;
+  tenantId: string;
+  tenant: { slug: string; name: string };
 }
+
+const WORKSPACE_KEY = 'erp_workspace';
+
+/** Last workspace that signed in on this browser, to prefill the login form. */
+export const lastWorkspace = () => {
+  try {
+    return localStorage.getItem(WORKSPACE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+};
 
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (workspace: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -43,10 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('erp:unauthorized', logout);
   }, [logout]);
 
-  const login = async (email: string, password: string) => {
-    const r = await api<{ token: string; user: User }>('/auth/login', { method: 'POST', body: { email, password } });
+  const login = async (workspace: string, email: string, password: string) => {
+    const r = await api<{ token: string; user: User }>('/auth/login', { method: 'POST', body: { workspace, email, password } });
     setToken(r.token);
     setUser(r.user);
+    try {
+      localStorage.setItem(WORKSPACE_KEY, r.user.tenant.slug);
+    } catch {
+      /* storage unavailable: the field simply will not be prefilled next time */
+    }
   };
 
   return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;

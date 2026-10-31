@@ -1,10 +1,11 @@
 import { FormEvent, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../lib/auth';
+import { lastWorkspace, useAuth } from '../lib/auth';
 import { Button, ErrorBox } from '../components/ui';
 
 export default function Login() {
   const { user, login } = useAuth();
+  const [workspace, setWorkspace] = useState(lastWorkspace);
   const [email, setEmail] = useState('admin@erp.local');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<unknown>(null);
@@ -17,7 +18,7 @@ export default function Login() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      await login(workspace, email, password);
     } catch (err) {
       setError(err);
     } finally {
@@ -36,6 +37,21 @@ export default function Login() {
           </div>
         </div>
         <ErrorBox error={error} />
+        <label className="label" htmlFor="workspace">
+          Workspace
+        </label>
+        <input
+          id="workspace"
+          className="input"
+          required
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          placeholder="your-company"
+          value={workspace}
+          onChange={(e) => setWorkspace(e.target.value)}
+        />
+        <p className="mb-4 mt-1 text-xs text-slate-400">The short name your company chose when it signed up.</p>
         <label className="label" htmlFor="email">
           Email
         </label>
@@ -43,7 +59,7 @@ export default function Login() {
         <label className="label" htmlFor="password">
           Password
         </label>
-        <input id="password" className="input mb-6" type="password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input id="password" className="input mb-6" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </Button>
