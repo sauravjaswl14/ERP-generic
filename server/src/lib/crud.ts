@@ -2,6 +2,7 @@ import { Request, Router } from 'express';
 import { AnyZodObject } from 'zod';
 import { Role } from '@prisma/client';
 import { prisma } from './prisma';
+import { assertRefs } from './refs';
 import { authorize } from '../middleware/auth';
 import { asyncHandler, HttpError } from '../middleware/error';
 
@@ -85,6 +86,7 @@ export function crud(o: CrudOptions): Router {
       authorize(...o.write),
       asyncHandler(async (req, res) => {
         const data = schema.parse(req.body);
+        await assertRefs(o.model, data);
         const row = await delegate().create({ data, include: o.include });
         await audit(req, 'CREATE', o.model, row.id);
         res.status(201).json(row);
@@ -96,6 +98,7 @@ export function crud(o: CrudOptions): Router {
     const schema = o.schema;
     const handler = asyncHandler(async (req, res) => {
       const data = schema.partial().parse(req.body);
+      await assertRefs(o.model, data);
       const row = await delegate().update({ where: { id: req.params.id }, data, include: o.include });
       await audit(req, 'UPDATE', o.model, row.id);
       res.json(row);

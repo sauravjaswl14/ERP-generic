@@ -6,6 +6,7 @@ import { P } from '../lib/permissions';
 import { authorize } from '../middleware/auth';
 import { asyncHandler, HttpError } from '../middleware/error';
 import { ACC, addDays, nextNumber, num, postJournal, round2 } from '../lib/accounting';
+import { assertRefs } from '../lib/refs';
 
 export const ordersRouter = Router();
 
@@ -45,6 +46,7 @@ ordersRouter.post(
   authorize(...P.sales.write),
   asyncHandler(async (req, res) => {
     const d = salesOrderSchema.parse(req.body);
+    await assertRefs('SalesOrder', d);
     const order = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({ where: { id: { in: d.lines.map((l) => l.productId) } } });
       const byId = new Map(products.map((p) => [p.id, p]));
@@ -252,6 +254,7 @@ ordersRouter.post(
   authorize(...P.purchasing.write),
   asyncHandler(async (req, res) => {
     const d = poSchema.parse(req.body);
+    await assertRefs('PurchaseOrder', d);
     const po = await prisma.$transaction(async (tx) => {
       const products = await tx.product.findMany({ where: { id: { in: d.lines.map((l) => l.productId) } } });
       const byId = new Map(products.map((p) => [p.id, p]));

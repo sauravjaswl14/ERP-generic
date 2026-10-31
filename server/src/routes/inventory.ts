@@ -5,6 +5,7 @@ import { crud, audit } from '../lib/crud';
 import { P } from '../lib/permissions';
 import { authorize } from '../middleware/auth';
 import { asyncHandler, HttpError } from '../middleware/error';
+import { assertRefs } from '../lib/refs';
 
 export const inventoryRouter = Router();
 
@@ -58,6 +59,7 @@ inventoryRouter.post(
   authorize(...P.inventory.write),
   asyncHandler(async (req, res) => {
     const d = adjustSchema.parse(req.body);
+    await assertRefs('StockMovement', d);
     await prisma.$transaction(async (tx) => {
       if (d.delta < 0) {
         const upd = await tx.stockLevel.updateMany({
@@ -103,6 +105,7 @@ inventoryRouter.post(
   authorize(...P.inventory.write),
   asyncHandler(async (req, res) => {
     const d = transferSchema.parse(req.body);
+    await assertRefs('StockMovement', d);
     await prisma.$transaction(async (tx) => {
       const upd = await tx.stockLevel.updateMany({
         where: { productId: d.productId, warehouseId: d.fromWarehouseId, quantity: { gte: d.quantity } },

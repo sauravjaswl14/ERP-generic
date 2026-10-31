@@ -6,6 +6,7 @@ import { P } from '../lib/permissions';
 import { authorize } from '../middleware/auth';
 import { asyncHandler, HttpError } from '../middleware/error';
 import { nextNumber, num, round2 } from '../lib/accounting';
+import { assertRefs } from '../lib/refs';
 
 export const accountingRouter = Router();
 
@@ -44,6 +45,7 @@ accountingRouter.post(
   authorize(...P.accounting.write),
   asyncHandler(async (req, res) => {
     const d = entrySchema.parse(req.body);
+    await assertRefs('JournalEntry', d);
     for (const l of d.lines) {
       if ((l.debit > 0) === (l.credit > 0)) {
         throw new HttpError(400, 'Each line must have either a debit or a credit amount (not both, not neither)');
