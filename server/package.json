@@ -13,7 +13,8 @@
     "db:push": "prisma db push",
     "db:seed": "tsx src/seed.ts",
     "tenant:create": "tsx src/scripts/create-tenant.ts",
-    "test": "node --import tsx --test \"src/**/*.test.ts\""
+    "test": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:integration": "node --import tsx --test src/tests/*.integration.ts"
   },
   "prisma": {
     "seed": "tsx src/seed.ts"
