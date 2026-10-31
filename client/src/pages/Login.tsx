@@ -1,0 +1,53 @@
+import { FormEvent, useState } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../lib/auth';
+import { Button, ErrorBox } from '../components/ui';
+
+export default function Login() {
+  const { user, login } = useAuth();
+  const [email, setEmail] = useState('admin@erp.local');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<unknown>(null);
+  const [busy, setBusy] = useState(false);
+
+  if (user) return <Navigate to="/" replace />;
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await login(email, password);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid min-h-screen place-items-center bg-gradient-to-br from-brand-900 via-slate-900 to-slate-900 p-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+        <div className="mb-6 flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-600 font-semibold text-white">E</span>
+          <div>
+            <h1 className="text-lg font-semibold text-slate-900">ERP Suite</h1>
+            <p className="text-xs text-slate-500">Sign in to your workspace</p>
+          </div>
+        </div>
+        <ErrorBox error={error} />
+        <label className="label" htmlFor="email">
+          Email
+        </label>
+        <input id="email" className="input mb-4" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <label className="label" htmlFor="password">
+          Password
+        </label>
+        <input id="password" className="input mb-6" type="password" required autoFocus value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Button type="submit" className="w-full" disabled={busy}>
+          {busy ? 'Signing in…' : 'Sign in'}
+        </Button>
+      </form>
+    </div>
+  );
+}
