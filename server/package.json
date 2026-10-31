@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx src/seed.ts",
+    "tenant:create": "tsx src/scripts/create-tenant.ts",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "prisma": {
