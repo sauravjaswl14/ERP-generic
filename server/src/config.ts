@@ -12,4 +12,6 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET ?? 'dev-only-secret-change-me',
   jwtExpires: process.env.JWT_EXPIRES ?? '8h',
   clientOrigin: process.env.CLIENT_ORIGIN ?? 'http://localhost:5173',
+  /** Self-service workspace sign-up. On by default in development, off by default in production. */
+  allowTenantSignup: process.env.ALLOW_TENANT_SIGNUP ? process.env.ALLOW_TENANT_SIGNUP === 'true' : !isProd,
 };
