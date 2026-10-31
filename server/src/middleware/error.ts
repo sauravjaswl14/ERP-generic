@@ -31,7 +31,9 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
-      const target = (err.meta?.target as string[] | undefined)?.join(', ') ?? 'field';
+      // Uniqueness is per tenant, so Prisma reports tenantId in the target; users only care about the other fields.
+      const fields = ((err.meta?.target as string[] | undefined) ?? []).filter((f) => f !== 'tenantId');
+      const target = fields.join(', ') || 'field';
       return res.status(409).json({ message: `A record with this ${target} already exists` });
     }
     if (err.code === 'P2025') return res.status(404).json({ message: 'Record not found' });

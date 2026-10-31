@@ -119,9 +119,49 @@ enum Priority {
 }
 
 // ───────────── Core / Admin ─────────────
+// Every other model carries a tenantId. The Prisma client in src/lib/prisma.ts filters and stamps it
+// automatically, and src/lib/tenant-scope.test.ts fails if a model is added without being registered.
+model Tenant {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  auditLogs          AuditLog[]
+  sequences          Sequence[]
+  departments        Department[]
+  employees          Employee[]
+  leaveRequests      LeaveRequest[]
+  attendances        Attendance[]
+  payrolls           Payroll[]
+  customers          Customer[]
+  leads              Lead[]
+  products           Product[]
+  warehouses         Warehouse[]
+  stockLevels        StockLevel[]
+  stockMovements     StockMovement[]
+  suppliers          Supplier[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseOrderLines PurchaseOrderLine[]
+  salesOrders        SalesOrder[]
+  salesOrderLines    SalesOrderLine[]
+  invoices           Invoice[]
+  payments           Payment[]
+  accounts           Account[]
+  journalEntries     JournalEntry[]
+  journalLines       JournalLine[]
+  projects           Project[]
+  tasks              Task[]
+}
+
 model User {
   id           String   @id @default(uuid())
-  email        String   @unique
+  tenantId     String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  email        String
   name         String
   passwordHash String
   role         Role     @default(EMPLOYEE)
@@ -133,10 +173,15 @@ model User {
   assignedTasks   Task[]     @relation("TaskAssignee")
   leads           Lead[]     @relation("LeadOwner")
   auditLogs       AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
+  tenantId  String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   action    String
@@ -146,29 +191,42 @@ model AuditLog {
 
   @@index([entity, entityId])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 model Sequence {
-  key   String @id
-  value Int    @default(0)
+  key      String
+  tenantId String @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant   Tenant @relation(fields: [tenantId], references: [id])
+  value    Int    @default(0)
+
+  @@id([tenantId, key])
+  @@index([tenantId])
 }
 
 // ───────────── HR ─────────────
 model Department {
   id          String     @id @default(uuid())
-  code        String     @unique
+  tenantId    String     @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  code        String
   name        String
   description String?
   employees   Employee[]
   createdAt   DateTime   @default(now())
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
 }
 
 model Employee {
   id           String         @id @default(uuid())
-  code         String         @unique
+  tenantId     String         @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+  code         String
   firstName    String
   lastName     String
-  email        String         @unique
+  email        String
   phone        String?
   position     String
   hireDate     DateTime
@@ -186,11 +244,16 @@ model Employee {
   attendance Attendance[]
   payrolls   Payroll[]
 
+  @@unique([tenantId, code])
+  @@unique([tenantId, email])
   @@index([departmentId])
+  @@index([tenantId])
 }
 
 model LeaveRequest {
   id         String        @id @default(uuid())
+  tenantId   String        @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
   employeeId String
   employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   type       LeaveType     @default(ANNUAL)
@@ -201,10 +264,13 @@ model LeaveRequest {
   createdAt  DateTime      @default(now())
 
   @@index([employeeId])
+  @@index([tenantId])
 }
 
 model Attendance {
   id         String           @id @default(uuid())
+  tenantId   String           @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant     Tenant           @relation(fields: [tenantId], references: [id])
   employeeId String
   employee   Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   date       DateTime
@@ -213,10 +279,13 @@ model Attendance {
   status     AttendanceStatus @default(PRESENT)
 
   @@unique([employeeId, date])
+  @@index([tenantId])
 }
 
 model Payroll {
   id         String        @id @default(uuid())
+  tenantId   String        @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant     Tenant        @relation(fields: [tenantId], references: [id])
   employeeId String
   employee   Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   period     String // YYYY-MM
@@ -229,11 +298,14 @@ model Payroll {
   createdAt  DateTime      @default(now())
 
   @@unique([employeeId, period])
+  @@index([tenantId])
 }
 
 // ───────────── CRM ─────────────
 model Customer {
   id          String   @id @default(uuid())
+  tenantId    String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   name        String
   email       String?
   phone       String?
@@ -244,10 +316,14 @@ model Customer {
 
   salesOrders SalesOrder[]
   invoices    Invoice[]
+
+  @@index([tenantId])
 }
 
 model Lead {
   id        String     @id @default(uuid())
+  tenantId  String     @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant    Tenant     @relation(fields: [tenantId], references: [id])
   name      String
   company   String?
   email     String?
@@ -259,12 +335,16 @@ model Lead {
   ownerId   String?
   owner     User?      @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   createdAt DateTime   @default(now())
+
+  @@index([tenantId])
 }
 
 // ───────────── Inventory ─────────────
 model Product {
   id           String   @id @default(uuid())
-  sku          String   @unique
+  tenantId     String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant   @relation(fields: [tenantId], references: [id])
+  sku          String
   name         String
   category     String?
   description  String?
@@ -279,11 +359,16 @@ model Product {
   movements     StockMovement[]
   salesLines    SalesOrderLine[]
   purchaseLines PurchaseOrderLine[]
+
+  @@unique([tenantId, sku])
+  @@index([tenantId])
 }
 
 model Warehouse {
   id       String  @id @default(uuid())
-  code     String  @unique
+  tenantId String  @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant   Tenant  @relation(fields: [tenantId], references: [id])
+  code     String
   name     String
   location String?
 
@@ -291,10 +376,15 @@ model Warehouse {
   movements      StockMovement[]
   salesOrders    SalesOrder[]
   purchaseOrders PurchaseOrder[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
 }
 
 model StockLevel {
   id          String    @id @default(uuid())
+  tenantId    String    @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
   productId   String
   product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   warehouseId String
@@ -302,10 +392,13 @@ model StockLevel {
   quantity    Int       @default(0)
 
   @@unique([productId, warehouseId])
+  @@index([tenantId])
 }
 
 model StockMovement {
   id          String       @id @default(uuid())
+  tenantId    String       @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant       @relation(fields: [tenantId], references: [id])
   productId   String
   product     Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
   warehouseId String
@@ -319,11 +412,14 @@ model StockMovement {
 
   @@index([productId])
   @@index([createdAt])
+  @@index([tenantId])
 }
 
 // ───────────── Purchasing ─────────────
 model Supplier {
   id        String   @id @default(uuid())
+  tenantId  String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   name      String
   email     String?
   phone     String?
@@ -332,11 +428,15 @@ model Supplier {
   createdAt DateTime @default(now())
 
   purchaseOrders PurchaseOrder[]
+
+  @@index([tenantId])
 }
 
 model PurchaseOrder {
   id           String              @id @default(uuid())
-  number       String              @unique
+  tenantId     String              @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant              @relation(fields: [tenantId], references: [id])
+  number       String
   supplierId   String
   supplier     Supplier            @relation(fields: [supplierId], references: [id])
   warehouseId  String
@@ -354,10 +454,15 @@ model PurchaseOrder {
   createdAt    DateTime            @default(now())
 
   lines PurchaseOrderLine[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model PurchaseOrderLine {
   id              String        @id @default(uuid())
+  tenantId        String        @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant          Tenant        @relation(fields: [tenantId], references: [id])
   purchaseOrderId String
   purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   productId       String
@@ -365,12 +470,16 @@ model PurchaseOrderLine {
   quantity        Int
   unitCost        Decimal       @db.Decimal(14, 2)
   lineTotal       Decimal       @db.Decimal(14, 2)
+
+  @@index([tenantId])
 }
 
 // ───────────── Sales ─────────────
 model SalesOrder {
   id          String           @id @default(uuid())
-  number      String           @unique
+  tenantId    String           @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant           @relation(fields: [tenantId], references: [id])
+  number      String
   customerId  String
   customer    Customer         @relation(fields: [customerId], references: [id])
   warehouseId String
@@ -387,10 +496,15 @@ model SalesOrder {
 
   lines   SalesOrderLine[]
   invoice Invoice?
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model SalesOrderLine {
   id           String     @id @default(uuid())
+  tenantId     String     @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant     @relation(fields: [tenantId], references: [id])
   salesOrderId String
   salesOrder   SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
   productId    String
@@ -399,11 +513,15 @@ model SalesOrderLine {
   unitPrice    Decimal    @db.Decimal(14, 2)
   discount     Decimal    @default(0) @db.Decimal(5, 2)
   lineTotal    Decimal    @db.Decimal(14, 2)
+
+  @@index([tenantId])
 }
 
 model Invoice {
   id           String        @id @default(uuid())
-  number       String        @unique
+  tenantId     String        @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  number       String
   customerId   String
   customer     Customer      @relation(fields: [customerId], references: [id])
   salesOrderId String?       @unique
@@ -416,33 +534,47 @@ model Invoice {
   createdAt    DateTime      @default(now())
 
   payments Payment[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model Payment {
   id        String   @id @default(uuid())
+  tenantId  String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
   invoiceId String
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   amount    Decimal  @db.Decimal(14, 2)
   method    String   @default("BANK")
   reference String?
   date      DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 // ───────────── Accounting ─────────────
 model Account {
   id          String      @id @default(uuid())
-  code        String      @unique
+  tenantId    String      @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  code        String
   name        String
   type        AccountType
   description String?
   isActive    Boolean     @default(true)
 
   lines JournalLine[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
 }
 
 model JournalEntry {
   id          String   @id @default(uuid())
-  number      String   @unique
+  tenantId    String   @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  number      String
   date        DateTime @default(now())
   description String
   reference   String?
@@ -450,10 +582,15 @@ model JournalEntry {
   createdAt   DateTime @default(now())
 
   lines JournalLine[]
+
+  @@unique([tenantId, number])
+  @@index([tenantId])
 }
 
 model JournalLine {
   id        String       @id @default(uuid())
+  tenantId  String       @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant    Tenant       @relation(fields: [tenantId], references: [id])
   entryId   String
   entry     JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   accountId String
@@ -463,12 +600,15 @@ model JournalLine {
   memo      String?
 
   @@index([accountId])
+  @@index([tenantId])
 }
 
 // ───────────── Projects ─────────────
 model Project {
   id          String        @id @default(uuid())
-  code        String        @unique
+  tenantId    String        @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  code        String
   name        String
   description String?
   status      ProjectStatus @default(PLANNING)
@@ -480,10 +620,15 @@ model Project {
   createdAt   DateTime      @default(now())
 
   tasks Task[]
+
+  @@unique([tenantId, code])
+  @@index([tenantId])
 }
 
 model Task {
   id          String     @id @default(uuid())
+  tenantId    String     @default("") // set by the tenant-scoped client; "" fails the foreign key
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
   projectId   String
   project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
@@ -496,4 +641,5 @@ model Task {
   createdAt   DateTime   @default(now())
 
   @@index([projectId])
+  @@index([tenantId])
 }

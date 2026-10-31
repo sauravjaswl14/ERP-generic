@@ -1,18 +1,22 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 import { HttpError } from '../middleware/error';
+import type { prisma } from './prisma';
+import { currentTenantId } from './tenant-context';
 
-export type Tx = Prisma.TransactionClient;
+/** The tenant-scoped transaction client, restricted to the models the helpers below touch. */
+export type Tx = Pick<typeof prisma, 'account' | 'sequence' | 'journalEntry'>;
 
 export const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 export const num = (d: Prisma.Decimal | number | string | null | undefined) => (d == null ? 0 : Number(d));
 export const addDays = (d: Date, days: number) => new Date(d.getTime() + days * 86_400_000);
 
-/** Atomic, gap-tolerant document numbering (e.g. SO-00001). */
+/** Atomic, gap-tolerant document numbering per tenant (e.g. SO-00001). */
 export async function nextNumber(tx: Tx, key: string, prefix: string, pad = 5) {
+  const tenantId = currentTenantId();
   const seq = await tx.sequence.upsert({
-    where: { key },
+    where: { tenantId_key: { tenantId, key } },
     update: { value: { increment: 1 } },
-    create: { key, value: 1 },
+    create: { tenantId, key, value: 1 },
   });
   return `${prefix}-${String(seq.value).padStart(pad, '0')}`;
 }

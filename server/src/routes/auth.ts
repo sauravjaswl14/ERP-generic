@@ -2,10 +2,11 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
+import { prisma, prismaBase } from '../lib/prisma';
 import { asyncHandler, HttpError } from '../middleware/error';
 import { authenticate, signToken } from '../middleware/auth';
 import { audit } from '../lib/crud';
+import { runWithTenant } from '../lib/tenant-context';
 
 export const authRouter = Router();
 
@@ -17,19 +18,35 @@ const loginLimiter = rateLimit({
   message: { message: 'Too many login attempts, please try again later' },
 });
 
-const loginSchema = z.object({ email: z.string().trim().toLowerCase().email(), password: z.string().min(1) });
+const loginSchema = z.object({
+  workspace: z.string().trim().toLowerCase().min(1, 'Workspace is required'),
+  email: z.string().trim().toLowerCase().email(),
+  password: z.string().min(1),
+});
 
 authRouter.post(
   '/login',
   loginLimiter,
   asyncHandler(async (req, res) => {
-    const { email, password } = loginSchema.parse(req.body);
-    const user = await prisma.user.findUnique({ where: { email } });
+    const { workspace, email, password } = loginSchema.parse(req.body);
+    // Unscoped lookups: the workspace slug is what tells us which tenant to look in.
+    const tenant = await prismaBase.tenant.findUnique({ where: { slug: workspace } });
+    const user = tenant?.isActive
+      ? await prismaBase.user.findUnique({ where: { tenantId_email: { tenantId: tenant.id, email } } })
+      : null;
     const ok = user && user.isActive && (await bcrypt.compare(password, user.passwordHash));
-    if (!user || !ok) throw new HttpError(401, 'Invalid email or password');
-    const safe = { id: user.id, email: user.email, name: user.name, role: user.role };
+    // One message for every failure so the endpoint cannot be used to discover workspaces or accounts.
+    if (!tenant || !user || !ok) throw new HttpError(401, 'Invalid workspace, email or password');
+    const safe = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      tenantId: tenant.id,
+      tenant: { slug: tenant.slug, name: tenant.name },
+    };
     req.user = safe;
-    await audit(req, 'LOGIN', 'user', user.id);
+    await runWithTenant(tenant.id, () => audit(req, 'LOGIN', 'user', user.id));
     res.json({ token: signToken(safe), user: safe });
   }),
 );

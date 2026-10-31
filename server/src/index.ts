@@ -1,6 +1,6 @@
 import { app } from './app';
 import { config } from './config';
-import { prisma } from './lib/prisma';
+import { prismaBase } from './lib/prisma';
 
 const server = app.listen(config.port, () => {
   console.log(`ERP API listening on http://localhost:${config.port}/api`);
@@ -8,7 +8,7 @@ const server = app.listen(config.port, () => {
 
 async function shutdown() {
   server.close();
-  await prisma.$disconnect();
+  await prismaBase.$disconnect();
   process.exit(0);
 }
 process.on('SIGINT', shutdown);
