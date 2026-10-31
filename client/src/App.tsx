@@ -5,6 +5,7 @@ import { canRead, Module } from './lib/access';
 import Layout from './components/Layout';
 import { Spinner } from './components/ui';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import { Attendance, Departments, Employees, Leave, Payroll } from './pages/hr';
 import { Customers, Leads } from './pages/crm';
@@ -42,6 +43,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route element={<RequireAuth />}>
         <Route index element={<Dashboard />} />
 

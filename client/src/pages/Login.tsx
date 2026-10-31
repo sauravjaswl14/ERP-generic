@@ -1,5 +1,7 @@
 import { FormEvent, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 import { lastWorkspace, useAuth } from '../lib/auth';
 import { Button, ErrorBox } from '../components/ui';
 
@@ -10,6 +12,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
+  const config = useQuery({ queryKey: ['tenant-config'], queryFn: () => api<{ signupEnabled: boolean }>('/tenants/config') });
 
   if (user) return <Navigate to="/" replace />;
 
@@ -63,6 +66,14 @@ export default function Login() {
         <Button type="submit" className="w-full" disabled={busy}>
           {busy ? 'Signing in…' : 'Sign in'}
         </Button>
+        {config.data?.signupEnabled && (
+          <p className="mt-4 text-center text-sm text-slate-500">
+            New here?{' '}
+            <Link to="/signup" className="text-brand-600 hover:underline">
+              Create a workspace
+            </Link>
+          </p>
+        )}
       </form>
     </div>
   );

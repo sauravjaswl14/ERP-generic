@@ -23,10 +23,19 @@ export const lastWorkspace = () => {
   }
 };
 
+const remember = (slug: string) => {
+  try {
+    localStorage.setItem(WORKSPACE_KEY, slug);
+  } catch {
+    /* storage unavailable: the field simply will not be prefilled next time */
+  }
+};
+
 interface AuthState {
   user: User | null;
   loading: boolean;
   login: (workspace: string, email: string, password: string) => Promise<void>;
+  register: (data: { companyName: string; workspace: string; adminName: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
 }
 
@@ -60,14 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const r = await api<{ token: string; user: User }>('/auth/login', { method: 'POST', body: { workspace, email, password } });
     setToken(r.token);
     setUser(r.user);
-    try {
-      localStorage.setItem(WORKSPACE_KEY, r.user.tenant.slug);
-    } catch {
-      /* storage unavailable: the field simply will not be prefilled next time */
-    }
+    remember(r.user.tenant.slug);
   };
 
-  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>;
+  const register: AuthState['register'] = async (data) => {
+    const r = await api<{ token: string; user: User }>('/tenants/register', { method: 'POST', body: data });
+    setToken(r.token);
+    setUser(r.user);
+    remember(r.user.tenant.slug);
+  };
+
+  return <Ctx.Provider value={{ user, loading, login, register, logout }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {
