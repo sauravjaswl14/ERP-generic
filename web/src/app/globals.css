@@ -1,0 +1,90 @@
+@import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  background: #f4f6f3;
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+body {
+  @apply bg-chalk font-sans text-carbon antialiased;
+  font-stretch: 100%;
+  overflow-x: clip;
+}
+
+::selection {
+  background: #f6e27b;
+  color: #12161d;
+}
+
+:focus-visible {
+  outline: 3px solid #1630d0;
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* Hero content stays hidden until its entrance timeline has taken over (or a failsafe fires). */
+html.anim:not(.ready) [data-hero] {
+  opacity: 0;
+}
+
+@layer components {
+  /* Condensed, heavy headline voice: freight labels and carton stencils. */
+  .display {
+    font-stretch: 66%;
+    font-weight: 800;
+    letter-spacing: -0.012em;
+    line-height: 0.9;
+  }
+  .display-md {
+    font-stretch: 72%;
+    font-weight: 780;
+    letter-spacing: -0.008em;
+    line-height: 0.95;
+  }
+  .typed {
+    @apply font-typed;
+    font-stretch: 100%;
+    font-feature-settings: 'zero' 1;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center rounded-[4px] px-6 py-3.5 text-[1.05rem] font-semibold leading-none transition-colors duration-200;
+    font-stretch: 92%;
+  }
+  .btn-ink {
+    @apply bg-ink text-white hover:bg-carbon;
+  }
+  .btn-line {
+    @apply border-2 border-carbon text-carbon hover:bg-carbon hover:text-chalk;
+  }
+  /* A sheet of triplicate paper. */
+  .paper {
+    @apply rounded-[3px] shadow-sheet;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 27px, rgba(18, 22, 29, 0.05) 27px 28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.anim:not(.ready) [data-hero] {
+    opacity: 1;
+  }
+}
