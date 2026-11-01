@@ -2,6 +2,8 @@
 
 Multi-tenant: one deployment serves many companies, each in its own isolated workspace.
 
+A separate marketing homepage lives in `web/` (Next.js + GSAP, see `web/README.md`); it is installed on its own.
+
 Monorepo with two npm workspaces:
 
 | Workspace | Stack |
